@@ -8,112 +8,27 @@
                 border: 1px solid red;
             }
         </style>
+        <script src='game.js'></script>
+        <script src='ball.js'></script>
+        <script src='block.js'></script>
+        <script src='paddle.js'></script>
+        <script src='utils.js'></script>
+        <script src='level.js'></script>
     </head>
     <body>
         <canvas id="id-canvas" width="400" height="300"></canvas>
+        <input id='id-range' type="range" value="3">
 <script>
-    var imageFromPath = function(path) {
-        var img = new Image()
-        img.src = path
-        return img
-    }
-    var Paddle = function() {
-        var image = imageFromPath('paddle.jpg')
-        var p = {
-            image: image,
-            x: 100,
-            y: 250,
-            speed: 15,
-        }
-        p.moveLeft = function() {
-            p.x -= p.speed
-        }
-        p.moveRight = function() {
-            p.x += p.speed
-        }
-        p.collide = function(ball) {
-            if (ball.y + ball.image.height > p.y) {
-                if (ball.x > p.x && ball.x < p.x + p.image.width) {
-                    return true
-                }
-            }
-            return false
-        }
-        return p
-    }
-    var Bullet = function() {
-        var image = imageFromPath('bullet.jpg')
-        console.log(image);
-        var o = {
-            image: image,
-            x: 40,
-            y: 130,
-            speedX: 8,
-            speedY: 8,
-            speed: 10,
-            fired: false,
-        }
-        o.fire = function() {
-            o.fired = true
-        }
-        o.move = function() {
-            if (o.fired) {
-                if (o.x < 0 || o.x > 400) {
-                    o.speedX = -o.speedX
-                }
-                if (o.y < 0 || o.y > 300) {
-                    o.speedY = -o.speedY
-                }
-                o.x += o.speedX
-                o.y += o.speedY
-            }
-        }
-        return o
-    }
-    var Game = function() {
-        var g = {
-            actions: {},
-            keyStatus: {},
-        }
-        var canvas = document.querySelector('#id-canvas')
-        var content = canvas.getContext('2d')
-        g.canvas = canvas
-        g.content = content
-        g.drawImage = function(drawimage) {
-            g.content.drawImage(drawimage.image, drawimage.x, drawimage.y)
-        }
-        window.addEventListener('keydown', function(event) {
-            g.keyStatus[event.key] = true
-        })
-        window.addEventListener('keyup', function(event) {
-            g.keyStatus[event.key] = false
-        })
-        g.registerAction = function(key, callback) {
-            g.actions[key] = callback
-        }
-        setInterval(function() {
-            //evnets
-            var actions = Object.keys(g.actions)
-            for (var i = 0; i < actions.length; i++) {
-                var key = actions[i]
-                if (g.keyStatus[key]) {
-                    g.actions[key]()
-                }
-            }
-            g.update()
-            //clear
-            content.clearRect(0, 0, canvas.width, canvas.height)
-            //draw
-            g.draw()
-        }, 1000/30)
-        return g
-    }
     var __main = function() {
-        var game = Game()
+        var game = Game(20)
 
         var paddle = Paddle()
 
         var ball = Bullet()
+
+        enable()
+
+        blocks = loadlevel(1)
 
         game.registerAction('a', function() {
             paddle.moveLeft()
@@ -125,15 +40,32 @@
         game.registerAction('f', function() {
             ball.fire()
         })
+
         game.update = function() {
+            if (paused) {
+                return
+            }
             ball.move()
             if (paddle.collide(ball)) {
                 ball.speedY = -ball.speedY
+            }
+            for (var i = 0; i < blocks.length; i++) {
+                var block = blocks[i]
+                if (block.collide(ball)) {
+                    block.kill()
+                    ball.speedY = -ball.speedY
+                }
             }
         }
         game.draw = function() {
             game.drawImage(paddle)
             game.drawImage(ball)
+            for (var i = 0; i < blocks.length; i++) {
+                var block = blocks[i]
+                if (block.actions) {
+                    game.drawImage(block)
+                }
+            }
         }
     }
     __main()
